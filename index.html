@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Live Cricket Streaming</title>
     <!-- Preconnect to external domains to speed up loading -->
     <link rel="preconnect" href="https://cdn.tailwindcss.com">
@@ -21,7 +22,7 @@
             min-height: 100vh;
             margin: 0;
             background: linear-gradient(to right, #1e3a8a, #9333ea);
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             flex-direction: column;
             padding: 20px 0;
         }
@@ -105,6 +106,18 @@
         .mb-2 { margin-bottom: 0.5rem; }
         .text-red-500 { color: #ef4444; }
         .hidden { display: none; }
+        
+        /* Add support for older browsers */
+        @supports not (display: flex) {
+            body, .platform-selector, .social-icons {
+                display: block;
+                text-align: center;
+            }
+            .platform-btn, .social-icons a {
+                display: inline-block;
+                margin: 5px;
+            }
+        }
     </style>
     
     <!-- Load Font Awesome with async to not block rendering -->
@@ -112,6 +125,9 @@
     <!-- Fallback if JavaScript is disabled -->
     <noscript>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <div style="color: white; text-align: center; padding: 20px;">
+            This page requires JavaScript to be enabled for full functionality.
+        </div>
     </noscript>
 </head>
 <body>
@@ -131,19 +147,20 @@
         <p class="text-white mb-2">Click play and unmute to enjoy live cricket!</p>
         <div id="loading" class="loader"></div>
         <!-- Use loading="lazy" and importance="low" for iframe -->
-        <iframe id="liveTV" loading="lazy" importance="low" src="" allowfullscreen></iframe>
+        <iframe id="liveTV" loading="lazy" importance="low" allow="autoplay; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms" src="" allowfullscreen></iframe>
         <p id="errorMsg" class="text-red-500 hidden">⚠️ Failed to load live stream. Please try again later.</p>
         <div id="fallback" class="fallback-message">
             <p>If the stream doesn't load, you can visit the channel website directly.</p>
+            <p class="text-white mt-2">Or try refreshing your browser.</p>
         </div>
     </div>
     
     <!-- Social Media Icons -->
     <div class="social-icons">
-        <a href="#"><i class="fab fa-facebook"></i></a>
-        <a href="#"><i class="fab fa-twitter"></i></a>
-        <a href="#"><i class="fab fa-instagram"></i></a>
-        <a href="https://www.youtube.com/@hackerbudy"><i class="fab fa-youtube"></i></a>
+        <a href="#" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+        <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+        <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+        <a href="https://www.youtube.com/@hackerbudy" aria-label="YouTube Channel"><i class="fab fa-youtube"></i></a>
     </div>
 
     <script>
@@ -156,6 +173,9 @@
             let platformButtons = document.querySelectorAll('.platform-btn');
             let activeButton = document.querySelector('.platform-btn.active');
             
+            // Track loading state to prevent multiple simultaneous requests
+            let isLoading = false;
+            
             // Set initial stream
             const initialUrl = activeButton.getAttribute('data-url');
             // Load iframe source after page load
@@ -166,6 +186,11 @@
             // Add click event listeners to platform buttons
             platformButtons.forEach(button => {
                 button.addEventListener('click', function() {
+                    // Skip if already loading or if this button is already active
+                    if (isLoading || this.classList.contains('active')) {
+                        return;
+                    }
+                    
                     // Remove active class from all buttons
                     platformButtons.forEach(btn => btn.classList.remove('active'));
                     
@@ -181,44 +206,58 @@
             });
             
             function loadStream(url) {
+                // Set loading state to prevent multiple requests
+                isLoading = true;
+                
                 // Reset the display
                 iframe.style.display = "none";
                 loader.style.display = "block";
                 errorMsg.style.display = "none";
                 fallback.style.display = "none";
                 
-                // Set the new iframe source
-                iframe.src = url;
+                // Clear previous iframe source and set new one
+                iframe.src = '';
+                
+                // Use timeout to ensure DOM updates before setting new source
+                setTimeout(() => {
+                    iframe.src = url;
+                }, 50);
                 
                 // Handle iframe loading
                 iframe.onload = function() {
                     loader.style.display = "none";
                     iframe.style.display = "block";
+                    isLoading = false;
                 };
                 
                 iframe.onerror = function() {
                     showError();
+                    isLoading = false;
                 };
                 
                 // Better timeout handling with progressive checks
                 let checkCount = 0;
+                const maxChecks = 30; // 15 seconds at 500ms intervals
                 const checkInterval = setInterval(() => {
                     checkCount++;
+                    
                     // Try to access iframe content to check if loaded
                     try {
                         if (iframe.contentWindow.document.readyState === 'complete') {
                             clearInterval(checkInterval);
                             loader.style.display = "none";
                             iframe.style.display = "block";
+                            isLoading = false;
                         }
                     } catch (e) {
                         // Cross-origin error, normal for iframes - continue waiting
                     }
                     
-                    // After 10 seconds (20 checks at 500ms), show error if still not displayed
-                    if (checkCount > 20 && iframe.style.display === "none") {
+                    // After timeout period, show error if still not displayed
+                    if (checkCount > maxChecks && iframe.style.display === "none") {
                         clearInterval(checkInterval);
                         showError();
+                        isLoading = false;
                     }
                 }, 500);
             }
@@ -227,7 +266,44 @@
                 loader.style.display = "none";
                 errorMsg.style.display = "block";
                 fallback.style.display = "block";
+                
+                // Add auto-retry functionality
+                setTimeout(() => {
+                    if (errorMsg.style.display === "block") {
+                        // Try loading again with current active button
+                        const currentActiveButton = document.querySelector('.platform-btn.active');
+                        if (currentActiveButton) {
+                            loadStream(currentActiveButton.getAttribute('data-url'));
+                        }
+                    }
+                }, 10000); // Try again after 10 seconds
             }
+            
+            // Browser compatibility checks
+            function checkBrowserCompatibility() {
+                // Check if browser supports all required features
+                const isCompatible = 'querySelector' in document && 
+                                    'addEventListener' in window && 
+                                    'localStorage' in window;
+                
+                if (!isCompatible) {
+                    // Show a compatibility message for very old browsers
+                    const container = document.querySelector('.container');
+                    if (container) {
+                        container.innerHTML = '<h2>Browser Not Supported</h2>' +
+                            '<p class="text-white">Please use a modern browser like Chrome, Firefox, Safari, or Edge to view this content.</p>';
+                    }
+                }
+            }
+            
+            // Run compatibility check
+            checkBrowserCompatibility();
+            
+            // Add error event listener for the whole page
+            window.addEventListener('error', function(e) {
+                console.error('Error occurred:', e.message);
+                // Don't show errors to users, just log them
+            });
         });
     </script>
 </body>
