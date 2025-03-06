@@ -45,6 +45,16 @@
             border-radius: 10px;
             display: none; /* Initially hidden */
             background-color: black;
+            border: 0; /* Firefox requires this explicitly */
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 450px;
+            border-radius: 10px;
+            background-color: black;
+            overflow: hidden;
+            display: none;
         }
         .loader {
             border: 6px solid #f3f3f3;
@@ -118,6 +128,13 @@
                 margin: 5px;
             }
         }
+
+        /* Firefox-specific styles */
+        @-moz-document url-prefix() {
+            iframe {
+                display: block !important;
+            }
+        }
     </style>
     
     <!-- Load Font Awesome with async to not block rendering -->
@@ -146,12 +163,23 @@
         
         <p class="text-white mb-2">Click play and unmute to enjoy live cricket!</p>
         <div id="loading" class="loader"></div>
-        <!-- Use loading="lazy" and importance="low" for iframe -->
-        <iframe id="liveTV" loading="lazy" importance="low" allow="autoplay; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms" src="" allowfullscreen></iframe>
+        
+        <div id="videoContainer" class="video-container">
+            <!-- Use loading="lazy" for iframe -->
+            <iframe id="liveTV" loading="lazy" 
+                allow="autoplay; fullscreen; encrypted-media" 
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation" 
+                src="" 
+                referrerpolicy="no-referrer-when-downgrade"
+                allowfullscreen>
+            </iframe>
+        </div>
+        
         <p id="errorMsg" class="text-red-500 hidden">⚠️ Failed to load live stream. Please try again later.</p>
         <div id="fallback" class="fallback-message">
             <p>If the stream doesn't load, you can visit the channel website directly.</p>
             <p class="text-white mt-2">Or try refreshing your browser.</p>
+            <p class="text-white mt-2">For Firefox users: Make sure to allow third-party cookies in your privacy settings.</p>
         </div>
     </div>
     
@@ -167,11 +195,15 @@
         // Defer non-critical JavaScript
         document.addEventListener("DOMContentLoaded", function() {
             let iframe = document.getElementById("liveTV");
+            let videoContainer = document.getElementById("videoContainer");
             let loader = document.getElementById("loading");
             let errorMsg = document.getElementById("errorMsg");
             let fallback = document.getElementById("fallback");
             let platformButtons = document.querySelectorAll('.platform-btn');
             let activeButton = document.querySelector('.platform-btn.active');
+            
+            // Detect Firefox browser
+            const isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
             
             // Track loading state to prevent multiple simultaneous requests
             let isLoading = false;
@@ -210,23 +242,33 @@
                 isLoading = true;
                 
                 // Reset the display
-                iframe.style.display = "none";
+                videoContainer.style.display = "none";
                 loader.style.display = "block";
                 errorMsg.style.display = "none";
                 fallback.style.display = "none";
                 
-                // Clear previous iframe source and set new one
+                // Clear previous iframe source
                 iframe.src = '';
                 
                 // Use timeout to ensure DOM updates before setting new source
                 setTimeout(() => {
+                    // For Firefox, modify URL parameters to help with compatibility
+                    if (isFirefox) {
+                        // Add Firefox-specific parameter if not already present
+                        if (url.indexOf('?') > -1) {
+                            url = url + '&firefox=true';
+                        } else {
+                            url = url + '?firefox=true';
+                        }
+                    }
+                    
                     iframe.src = url;
                 }, 50);
                 
                 // Handle iframe loading
                 iframe.onload = function() {
                     loader.style.display = "none";
-                    iframe.style.display = "block";
+                    videoContainer.style.display = "block";
                     isLoading = false;
                 };
                 
@@ -246,7 +288,7 @@
                         if (iframe.contentWindow.document.readyState === 'complete') {
                             clearInterval(checkInterval);
                             loader.style.display = "none";
-                            iframe.style.display = "block";
+                            videoContainer.style.display = "block";
                             isLoading = false;
                         }
                     } catch (e) {
@@ -254,7 +296,7 @@
                     }
                     
                     // After timeout period, show error if still not displayed
-                    if (checkCount > maxChecks && iframe.style.display === "none") {
+                    if (checkCount > maxChecks && videoContainer.style.display === "none") {
                         clearInterval(checkInterval);
                         showError();
                         isLoading = false;
@@ -267,6 +309,15 @@
                 errorMsg.style.display = "block";
                 fallback.style.display = "block";
                 
+                // For Firefox, show Firefox-specific error instructions
+                if (isFirefox) {
+                    const firefoxHelp = document.createElement('p');
+                    firefoxHelp.className = 'text-white mt-2';
+                    firefoxHelp.innerHTML = 'Firefox tip: Go to Settings > Privacy & Security > Cookies and Site Data > ' +
+                        'Make sure "Cross-site tracking cookies" is not blocked for this site.';
+                    fallback.appendChild(firefoxHelp);
+                }
+                
                 // Add auto-retry functionality
                 setTimeout(() => {
                     if (errorMsg.style.display === "block") {
@@ -276,7 +327,23 @@
                             loadStream(currentActiveButton.getAttribute('data-url'));
                         }
                     }
-                }, 10000); // Try again after 10 seconds
+                }, 15000); // Try again after 15 seconds
+            }
+            
+            // Firefox-specific adjustments
+            if (isFirefox) {
+                // Apply Firefox-specific fixes
+                document.body.classList.add('firefox');
+                
+                // Modify the iframe directly for Firefox
+                iframe.setAttribute('mozallowfullscreen', 'true');
+                
+                // Add event listener for navigation errors
+                window.addEventListener('error', function(e) {
+                    if (e.target.tagName === 'IFRAME') {
+                        showError();
+                    }
+                }, true);
             }
             
             // Browser compatibility checks
