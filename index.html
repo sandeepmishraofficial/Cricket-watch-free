@@ -4,17 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Cricket Streaming</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Preconnect to external domains to speed up loading -->
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://tapmadtv.live">
+    
+    <!-- Load Tailwind with defer to not block rendering -->
+    <script src="https://cdn.tailwindcss.com" defer></script>
+    
+    <!-- Inline critical CSS to reduce render-blocking -->
     <style>
         body {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             background: linear-gradient(to right, #1e3a8a, #9333ea);
             font-family: Arial, sans-serif;
             flex-direction: column;
+            padding: 20px 0;
         }
         .container {
             background: rgba(0, 0, 0, 0.8);
@@ -22,7 +31,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
             text-align: center;
-            width: 80%;
+            width: 90%;
             max-width: 900px;
         }
         h2 {
@@ -31,9 +40,10 @@
         }
         iframe {
             width: 100%;
-            height: 400px;
+            height: 450px;
             border-radius: 10px;
             display: none; /* Initially hidden */
+            background-color: black;
         }
         .loader {
             border: 6px solid #f3f3f3;
@@ -49,6 +59,33 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .platform-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .platform-btn {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .platform-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .platform-btn.active {
+            background-color: #3498db;
+        }
+        .fallback-message {
+            color: white;
+            margin-top: 20px;
+            display: none;
+        }
         .social-icons {
             margin-top: 20px;
             display: flex;
@@ -63,85 +100,135 @@
         .social-icons a:hover {
             transform: scale(1.2);
         }
-        .fallback-message {
-            color: white;
-            margin-top: 20px;
-            display: none;
-        }
+        .text-white { color: white; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .text-red-500 { color: #ef4444; }
+        .hidden { display: none; }
     </style>
-    <!-- Use a reliable CDN for Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Load Font Awesome with async to not block rendering -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <!-- Fallback if JavaScript is disabled -->
+    <noscript>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    </noscript>
 </head>
 <body>
     
     <div class="container">
         <h2>Watch Live Cricket Streaming</h2>
+        <p class="text-white mb-4">Select your preferred platform below</p>
+        
+        <div class="platform-selector">
+            <button class="platform-btn" data-url="https://tapmadtv.live/play.php?c=supercricket">PTV Sports</button>
+            <button class="platform-btn" data-url="https://tapmadtv.live/play.php?c=star1in">Star Sports HD</button>
+            <button class="platform-btn active" data-url="https://tapmadtv.live/play.php?c=starhindi">Star Sports Hindi</button>
+            <button class="platform-btn" data-url="https://tapmadtv.live/play.php?c=bbtsp2">Ten Sports</button>
+            <button class="platform-btn" data-url="https://tapmadtv.live/play.php?c=ptvpk">Cricket</button>
+        </div>
+        
         <p class="text-white mb-2">Click play and unmute to enjoy live cricket!</p>
         <div id="loading" class="loader"></div>
-        <iframe id="liveTV" loading="lazy" src="https://tapmadtv.live/play.php?c=ptvpk" allowfullscreen></iframe>
+        <!-- Use loading="lazy" and importance="low" for iframe -->
+        <iframe id="liveTV" loading="lazy" importance="low" src="" allowfullscreen></iframe>
         <p id="errorMsg" class="text-red-500 hidden">⚠️ Failed to load live stream. Please try again later.</p>
         <div id="fallback" class="fallback-message">
-            <p>If the stream doesn't load, you can visit <a href="https://tapmadtv.live/play.php?c=ptvpk" target="_blank" class="text-blue-400 underline">TapMad TV</a> directly.</p>
+            <p>If the stream doesn't load, you can visit the channel website directly.</p>
         </div>
     </div>
     
     <!-- Social Media Icons -->
     <div class="social-icons">
-        <a href="https://www.linkedin.com/in/sandeepmishraofficial/"><i class="fab fa-linkedin"></i></a>
-        <a href="https://x.com/CodeWithMishra"><i class="fab fa-twitter"></i></a>
-        <a href="https://instagram.com/8sm_______"><i class="fab fa-instagram"></i></a>
+        <a href="#"><i class="fab fa-facebook"></i></a>
+        <a href="#"><i class="fab fa-twitter"></i></a>
+        <a href="#"><i class="fab fa-instagram"></i></a>
         <a href="https://www.youtube.com/@hackerbudy"><i class="fab fa-youtube"></i></a>
     </div>
 
     <script>
-        window.onload = function() {
+        // Defer non-critical JavaScript
+        document.addEventListener("DOMContentLoaded", function() {
             let iframe = document.getElementById("liveTV");
             let loader = document.getElementById("loading");
             let errorMsg = document.getElementById("errorMsg");
             let fallback = document.getElementById("fallback");
-
-            // Try to load the iframe
-            try {
+            let platformButtons = document.querySelectorAll('.platform-btn');
+            let activeButton = document.querySelector('.platform-btn.active');
+            
+            // Set initial stream
+            const initialUrl = activeButton.getAttribute('data-url');
+            // Load iframe source after page load
+            setTimeout(() => {
+                loadStream(initialUrl);
+            }, 100);
+            
+            // Add click event listeners to platform buttons
+            platformButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    platformButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    // Get the URL from the button's data attribute
+                    const streamUrl = this.getAttribute('data-url');
+                    
+                    // Load the selected stream
+                    loadStream(streamUrl);
+                });
+            });
+            
+            function loadStream(url) {
+                // Reset the display
+                iframe.style.display = "none";
+                loader.style.display = "block";
+                errorMsg.style.display = "none";
+                fallback.style.display = "none";
+                
+                // Set the new iframe source
+                iframe.src = url;
+                
+                // Handle iframe loading
                 iframe.onload = function() {
                     loader.style.display = "none";
                     iframe.style.display = "block";
                 };
-
+                
                 iframe.onerror = function() {
                     showError();
                 };
-
-                // Check if iframe loaded content successfully
-                setTimeout(() => {
+                
+                // Better timeout handling with progressive checks
+                let checkCount = 0;
+                const checkInterval = setInterval(() => {
+                    checkCount++;
+                    // Try to access iframe content to check if loaded
                     try {
-                        // This will throw an error if cross-origin restrictions apply
-                        let iframeContent = iframe.contentWindow || iframe.contentDocument;
-                        if (!iframeContent) {
-                            showError();
+                        if (iframe.contentWindow.document.readyState === 'complete') {
+                            clearInterval(checkInterval);
+                            loader.style.display = "none";
+                            iframe.style.display = "block";
                         }
                     } catch (e) {
+                        // Cross-origin error, normal for iframes - continue waiting
+                    }
+                    
+                    // After 10 seconds (20 checks at 500ms), show error if still not displayed
+                    if (checkCount > 20 && iframe.style.display === "none") {
+                        clearInterval(checkInterval);
                         showError();
                     }
-                }, 3000);
-
-                // Timeout in case iframe takes too long to load
-                setTimeout(() => {
-                    if (iframe.style.display === "none") {
-                        showError();
-                    }
-                }, 10000); // 10 seconds timeout
-            } catch (e) {
-                showError();
+                }, 500);
             }
-
+            
             function showError() {
                 loader.style.display = "none";
                 errorMsg.style.display = "block";
                 fallback.style.display = "block";
-                // Try to load alternative content
-                iframe.src = "https://tapmadtv.live/play.php?c=ptvpk";
             }
-        };
+        });
     </script>
 </body>
 </html>
