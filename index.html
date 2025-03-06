@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Cricket Streaming</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(to right, #1e3a8a, #9333ea);
+            font-family: Arial, sans-serif;
+            flex-direction: column;
+        }
+        .container {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            width: 80%;
+            max-width: 900px;
+        }
+        h2 {
+            color: white;
+            margin-bottom: 10px;
+        }
+        iframe {
+            width: 100%;
+            height: 00px;
+            border-radius: 10px;
+            display: none; /* Initially hidden */
+        }
+        .loader {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: auto;
+            margin-top: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .social-icons {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+        .social-icons a {
+            color: white;
+            font-size: 24px;
+            transition: transform 0.3s ease;
+        }
+        .social-icons a:hover {
+            transform: scale(1.2);
+        }
+    </style>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    
+    <div class="container">
+        <h2>Watch Live Cricket Streaming</h2>
+        <p class="text-white mb-2">Click play and unmute to enjoy live cricket!</p>
+        <div id="loading" class="loader"></div>
+        <iframe id="liveTV" loading="lazy" src="https://tapmadtv.live/play.php?c=starhindi" allowfullscreen></iframe>
+        <p id="errorMsg" class="text-red-500 hidden">⚠️ Failed to load live stream. Please try again later.</p>
+    </div>
+    
+    <!-- Social Media Icons -->
+   
+
+    <script>
+        window.onload = function() {
+            let iframe = document.getElementById("liveTV");
+            let loader = document.getElementById("loading");
+            let errorMsg = document.getElementById("errorMsg");
+
+            iframe.onload = function() {
+                loader.style.display = "none";
+                iframe.style.display = "block";
+            };
+
+            iframe.onerror = function() {
+                loader.style.display = "none";
+                errorMsg.style.display = "block";
+            };
+
+            // Timeout in case iframe takes too long to load
+            setTimeout(() => {
+                if (iframe.style.display === "none") {
+                    loader.style.display = "none";
+                    errorMsg.style.display = "block";
+                }
+            }, 10000); // 10 seconds timeout
+        };
+    </script>
+</body>
+</html>
